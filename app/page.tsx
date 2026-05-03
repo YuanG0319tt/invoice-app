@@ -6,13 +6,19 @@ type Lesson = {
   id: number;
   date: string;
   description: string;
-  price: number;
+  price: string;
 };
 
+const lessonOptions = [
+  "Piano Lesson (60 min)",
+  "Piano Lesson (45 min)",
+  "Piano Lesson (30 min)",
+] as const;
+
 const initialLessons: Lesson[] = [
-  { id: 1, date: "Apr 5", description: "Piano Lesson (60 min)", price: 50 },
-  { id: 2, date: "Apr 12", description: "Piano Lesson (60 min)", price: 50 },
-  { id: 3, date: "Apr 19", description: "Piano Lesson (60 min)", price: 50 },
+  { id: 1, date: "Apr 5", description: lessonOptions[0], price: "50" },
+  { id: 2, date: "Apr 12", description: lessonOptions[0], price: "50" },
+  { id: 3, date: "Apr 19", description: lessonOptions[0], price: "50" },
 ];
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -30,11 +36,14 @@ export default function Home() {
   const [dueDate, setDueDate] = useState("May 5, 2026");
   const [billTo, setBillTo] = useState("John Smith");
   const [paymentMethod, setPaymentMethod] = useState("Zelle: 123-456-7890");
-  const [note, setNote] = useState("");
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
 
+  function parsePrice(price: string) {
+    return Number.parseFloat(price) || 0;
+  }
+
   const total = useMemo(
-    () => lessons.reduce((sum, lesson) => sum + lesson.price, 0),
+    () => lessons.reduce((sum, lesson) => sum + parsePrice(lesson.price), 0),
     [lessons],
   );
 
@@ -47,7 +56,7 @@ export default function Home() {
 
         return {
           ...lesson,
-          [field]: field === "price" ? parseFloat(value) || 0 : value,
+          [field]: value,
         };
       }),
     );
@@ -59,8 +68,8 @@ export default function Home() {
       {
         id: Date.now(),
         date: "",
-        description: "Piano Lesson (60 min)",
-        price: 50,
+        description: lessonOptions[0],
+        price: "",
       },
     ]);
   }
@@ -171,7 +180,7 @@ export default function Home() {
                       placeholder="Apr 5"
                       className="h-9 rounded-md border border-[#cfd3c7] px-2 text-sm outline-none focus:border-[#53624b]"
                     />
-                    <input
+                    <select
                       aria-label="Lesson description"
                       value={lesson.description}
                       onChange={(event) =>
@@ -181,12 +190,17 @@ export default function Home() {
                           event.target.value,
                         )
                       }
-                      className="h-9 rounded-md border border-[#cfd3c7] px-2 text-sm outline-none focus:border-[#53624b]"
-                    />
+                      className="h-9 rounded-md border border-[#cfd3c7] bg-white px-2 text-sm outline-none focus:border-[#53624b]"
+                    >
+                      {lessonOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       aria-label="Lesson price"
                       type="number"
-                      min="0"
                       step="0.01"
                       inputMode="decimal"
                       value={lesson.price}
@@ -214,16 +228,6 @@ export default function Home() {
               value={paymentMethod}
               onChange={(event) => setPaymentMethod(event.target.value)}
               className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
-            />
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-medium">
-            Note
-            <textarea
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              rows={3}
-              className="resize-none rounded-md border border-[#cfd3c7] px-3 py-2 font-normal outline-none focus:border-[#53624b]"
             />
           </label>
 
@@ -275,7 +279,7 @@ export default function Home() {
                     <p>{lesson.date}</p>
                     <p>{lesson.description}</p>
                     <p className="text-right">
-                      {currencyFormatter.format(lesson.price)}
+                      {currencyFormatter.format(parsePrice(lesson.price))}
                     </p>
                   </div>
                 ))}
@@ -293,10 +297,6 @@ export default function Home() {
               <p>{paymentMethod}</p>
             </section>
 
-            <section className="mt-8">
-              <p className="font-semibold">Note:</p>
-              {note ? <p className="whitespace-pre-wrap">{note}</p> : null}
-            </section>
           </article>
         </section>
       </div>
