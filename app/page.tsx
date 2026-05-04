@@ -36,6 +36,7 @@ export default function Home() {
   const [dueDate, setDueDate] = useState("May 5, 2026");
   const [billTo, setBillTo] = useState("John Smith");
   const [paymentMethod, setPaymentMethod] = useState("Zelle: 123-456-7890");
+  const [note, setNote] = useState("");
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
 
   function parsePrice(price: string) {
@@ -231,6 +232,16 @@ export default function Home() {
             />
           </label>
 
+          {/* <label className="grid gap-1.5 text-sm font-medium">
+            Note
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              rows={3}
+              className="resize-none rounded-md border border-[#cfd3c7] px-3 py-2 font-normal outline-none focus:border-[#53624b]"
+            />
+          </label> */}
+
           <button
             type="button"
             onClick={() => window.print()}
@@ -297,6 +308,10 @@ export default function Home() {
               <p>{paymentMethod}</p>
             </section>
 
+            {/* <section className="mt-8">
+              <p className="font-semibold">Note:</p>
+              {note ? <p className="whitespace-pre-wrap">{note}</p> : null}
+            </section> */}
           </article>
         </section>
       </div>
