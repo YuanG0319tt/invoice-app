@@ -9,17 +9,33 @@ type Lesson = {
   price: string;
 };
 
+type PaymentMethod = "Zelle" | "Venmo" | "Cash" | "Check";
+
+type PaymentOption = {
+  enabled: boolean;
+  details: string;
+};
+
 const lessonOptions = [
   "Piano Lesson (60 min)",
   "Piano Lesson (45 min)",
   "Piano Lesson (30 min)",
 ] as const;
 
+const paymentOptions: PaymentMethod[] = ["Zelle", "Venmo", "Cash", "Check"];
+
 const initialLessons: Lesson[] = [
-  { id: 1, date: "Apr 5", description: lessonOptions[0], price: "50" },
-  { id: 2, date: "Apr 12", description: lessonOptions[0], price: "50" },
-  { id: 3, date: "Apr 19", description: lessonOptions[0], price: "50" },
+  { id: 1, date: "2026-04-05", description: lessonOptions[0], price: "50" },
+  { id: 2, date: "2026-04-12", description: lessonOptions[0], price: "50" },
+  { id: 3, date: "2026-04-19", description: lessonOptions[0], price: "50" },
 ];
+
+const initialPayments: Record<PaymentMethod, PaymentOption> = {
+  Zelle: { enabled: true, details: "123-456-7890" },
+  Venmo: { enabled: false, details: "" },
+  Cash: { enabled: false, details: "" },
+  Check: { enabled: false, details: "" },
+};
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -28,14 +44,24 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+function formatDate(value: string, options: Intl.DateTimeFormatOptions) {
+  if (!value) {
+    return "";
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  return new Intl.DateTimeFormat("en-US", options).format(date);
+}
+
 export default function Home() {
   const [studioName, setStudioName] = useState("XXX Music Studio");
-  const [email, setEmail] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("INV-001");
-  const [invoiceDate, setInvoiceDate] = useState("May 1, 2026");
-  const [dueDate, setDueDate] = useState("May 5, 2026");
+  const [invoiceDate, setInvoiceDate] = useState("2026-05-01");
+  const [dueDate, setDueDate] = useState("2026-05-05");
   const [billTo, setBillTo] = useState("John Smith");
-  const [paymentMethod, setPaymentMethod] = useState("Zelle: 123-456-7890");
+  const [payments, setPayments] = useState(initialPayments);
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
 
   function parsePrice(price: string) {
@@ -46,6 +72,13 @@ export default function Home() {
     () => lessons.reduce((sum, lesson) => sum + parsePrice(lesson.price), 0),
     [lessons],
   );
+
+  const selectedPayments = paymentOptions
+    .filter((option) => payments[option].enabled)
+    .map((option) => {
+      const details = payments[option].details.trim();
+      return details ? `${option}: ${details}` : option;
+    });
 
   function updateLesson(id: number, field: keyof Lesson, value: string) {
     setLessons((currentLessons) =>
@@ -80,6 +113,20 @@ export default function Home() {
     );
   }
 
+  function updatePayment(
+    method: PaymentMethod,
+    field: keyof PaymentOption,
+    value: boolean | string,
+  ) {
+    setPayments((currentPayments) => ({
+      ...currentPayments,
+      [method]: {
+        ...currentPayments[method],
+        [field]: value,
+      },
+    }));
+  }
+
   return (
     <main className="min-h-screen bg-[#f4f5f1] px-4 py-6 text-[#1d1f1b] sm:px-6 lg:px-8 print:bg-white print:p-0">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[380px_1fr] print:block print:max-w-none">
@@ -102,54 +149,42 @@ export default function Home() {
             </label>
 
             <label className="grid gap-1.5 text-sm font-medium">
-              Email
+              Invoice #
               <input
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="studio@example.com"
+                value={invoiceNumber}
+                onChange={(event) => setInvoiceNumber(event.target.value)}
                 className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
               />
             </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-1.5 text-sm font-medium">
-                Invoice #
-                <input
-                  value={invoiceNumber}
-                  onChange={(event) => setInvoiceNumber(event.target.value)}
-                  className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
-                />
-              </label>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Bill to
+              <input
+                value={billTo}
+                onChange={(event) => setBillTo(event.target.value)}
+                className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
+              />
+            </label>
 
-              <label className="grid gap-1.5 text-sm font-medium">
-                Bill to
-                <input
-                  value={billTo}
-                  onChange={(event) => setBillTo(event.target.value)}
-                  className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
-                />
-              </label>
-            </div>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Date
+              <input
+                type="date"
+                value={invoiceDate}
+                onChange={(event) => setInvoiceDate(event.target.value)}
+                className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
+              />
+            </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-1.5 text-sm font-medium">
-                Date
-                <input
-                  value={invoiceDate}
-                  onChange={(event) => setInvoiceDate(event.target.value)}
-                  className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
-                />
-              </label>
-
-              <label className="grid gap-1.5 text-sm font-medium">
-                Due
-                <input
-                  value={dueDate}
-                  onChange={(event) => setDueDate(event.target.value)}
-                  className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
-                />
-              </label>
-            </div>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Due
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
+                className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
+              />
+            </label>
           </div>
 
           <div className="space-y-3">
@@ -170,45 +205,53 @@ export default function Home() {
                   key={lesson.id}
                   className="grid gap-2 rounded-md border border-[#d8dbd2] p-3"
                 >
-                  <div className="grid grid-cols-[86px_1fr_92px] gap-2">
-                    <input
-                      aria-label="Lesson date"
-                      value={lesson.date}
-                      onChange={(event) =>
-                        updateLesson(lesson.id, "date", event.target.value)
-                      }
-                      placeholder="Apr 5"
-                      className="h-9 rounded-md border border-[#cfd3c7] px-2 text-sm outline-none focus:border-[#53624b]"
-                    />
-                    <select
-                      aria-label="Lesson description"
-                      value={lesson.description}
-                      onChange={(event) =>
-                        updateLesson(
-                          lesson.id,
-                          "description",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 rounded-md border border-[#cfd3c7] bg-white px-2 text-sm outline-none focus:border-[#53624b]"
-                    >
-                      {lessonOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      aria-label="Lesson price"
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={lesson.price}
-                      onChange={(event) =>
-                        updateLesson(lesson.id, "price", event.target.value)
-                      }
-                      className="h-9 rounded-md border border-[#cfd3c7] px-2 text-sm outline-none focus:border-[#53624b]"
-                    />
+                  <div className="grid gap-2">
+                    <label className="grid gap-1.5 text-sm font-medium">
+                      Date
+                      <input
+                        type="date"
+                        value={lesson.date}
+                        onChange={(event) =>
+                          updateLesson(lesson.id, "date", event.target.value)
+                        }
+                        className="h-9 rounded-md border border-[#cfd3c7] px-2 font-normal outline-none focus:border-[#53624b]"
+                      />
+                    </label>
+
+                    <label className="grid gap-1.5 text-sm font-medium">
+                      Lesson
+                      <select
+                        value={lesson.description}
+                        onChange={(event) =>
+                          updateLesson(
+                            lesson.id,
+                            "description",
+                            event.target.value,
+                          )
+                        }
+                        className="h-9 rounded-md border border-[#cfd3c7] bg-white px-2 font-normal outline-none focus:border-[#53624b]"
+                      >
+                        {lessonOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="grid gap-1.5 text-sm font-medium">
+                      Price
+                      <input
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={lesson.price}
+                        onChange={(event) =>
+                          updateLesson(lesson.id, "price", event.target.value)
+                        }
+                        className="h-9 rounded-md border border-[#cfd3c7] px-2 font-normal outline-none focus:border-[#53624b]"
+                      />
+                    </label>
                   </div>
                   <button
                     type="button"
@@ -222,14 +265,39 @@ export default function Home() {
             </div>
           </div>
 
-          <label className="grid gap-1.5 text-sm font-medium">
-            Payment
-            <input
-              value={paymentMethod}
-              onChange={(event) => setPaymentMethod(event.target.value)}
-              className="h-10 rounded-md border border-[#cfd3c7] px-3 font-normal outline-none focus:border-[#53624b]"
-            />
-          </label>
+          <div className="grid gap-2">
+            <h2 className="text-base font-semibold">Payment</h2>
+            {paymentOptions.map((option) => (
+              <div key={option} className="grid grid-cols-[86px_1fr] gap-2">
+                <label className="flex h-10 items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={payments[option].enabled}
+                    onChange={(event) =>
+                      updatePayment(option, "enabled", event.target.checked)
+                    }
+                    className="size-4 accent-[#394832]"
+                  />
+                  {option}
+                </label>
+                <input
+                  aria-label={`${option} payment information`}
+                  value={payments[option].details}
+                  onChange={(event) =>
+                    updatePayment(option, "details", event.target.value)
+                  }
+                  placeholder={
+                    option === "Check"
+                      ? "Payable to..."
+                      : option === "Cash"
+                        ? "Cash payment note"
+                        : "Account, phone, or username"
+                  }
+                  className="h-10 rounded-md border border-[#cfd3c7] px-3 text-sm outline-none focus:border-[#53624b]"
+                />
+              </div>
+            ))}
+          </div>
 
           <button
             type="button"
@@ -247,7 +315,6 @@ export default function Home() {
                 <h2 className="text-3xl font-semibold tracking-normal">
                   {studioName}
                 </h2>
-                <p className="mt-2 text-[#555c50]">Email: {email}</p>
               </div>
 
               <div className="min-w-48 text-left sm:text-right">
@@ -256,10 +323,20 @@ export default function Home() {
                   {invoiceNumber}
                 </p>
                 <p>
-                  <span className="font-semibold">Date:</span> {invoiceDate}
+                  <span className="font-semibold">Date:</span>{" "}
+                  {formatDate(invoiceDate, {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
                 </p>
                 <p>
-                  <span className="font-semibold">Due:</span> {dueDate}
+                  <span className="font-semibold">Due:</span>{" "}
+                  {formatDate(dueDate, {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
                 </p>
               </div>
             </header>
@@ -276,7 +353,12 @@ export default function Home() {
                     key={lesson.id}
                     className="grid grid-cols-[72px_1fr_auto] gap-3"
                   >
-                    <p>{lesson.date}</p>
+                    <p>
+                      {formatDate(lesson.date, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
                     <p>{lesson.description}</p>
                     <p className="text-right">
                       {currencyFormatter.format(parsePrice(lesson.price))}
@@ -294,7 +376,15 @@ export default function Home() {
 
             <section className="mt-10">
               <p className="font-semibold">Payment:</p>
-              <p>{paymentMethod}</p>
+              {selectedPayments.length > 0 ? (
+                <div>
+                  {selectedPayments.map((payment) => (
+                    <p key={payment}>{payment}</p>
+                  ))}
+                </div>
+              ) : (
+                <p>No payment option selected</p>
+              )}
             </section>
 
           </article>
