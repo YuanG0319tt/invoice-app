@@ -7,6 +7,7 @@ type Lesson = {
   date: string;
   description: string;
   price: string;
+  repeatSourceId?: number;
 };
 
 type PaymentMethod = "Zelle" | "Venmo" | "Cash" | "Check";
@@ -55,6 +56,80 @@ function formatDate(value: string, options: Intl.DateTimeFormatOptions) {
   return new Intl.DateTimeFormat("en-US", options).format(date);
 }
 
+function parseDateInput(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getNextLessonId(lessons: Lesson[]) {
+  return lessons.reduce((nextId, lesson) => Math.max(nextId, lesson.id + 1), 1);
+}
+
+function buildRemainingMonthLessons(
+  sourceLesson: Lesson,
+  existingLessons: Lesson[],
+  nextId: number,
+) {
+  const sourceDate = parseDateInput(sourceLesson.date);
+
+  if (!sourceDate) {
+    return [];
+  }
+
+  const lessons: Lesson[] = [];
+  const existingDates = new Set(
+    existingLessons
+      .filter((lesson) => lesson.id !== sourceLesson.id)
+      .map((lesson) => lesson.date),
+  );
+  const date = new Date(sourceDate);
+  date.setDate(date.getDate() + 7);
+
+  while (date.getMonth() === sourceDate.getMonth()) {
+    const lessonDate = formatDateInput(date);
+
+    if (existingDates.has(lessonDate)) {
+      date.setDate(date.getDate() + 7);
+      continue;
+    }
+
+    lessons.push({
+      id: nextId,
+      date: lessonDate,
+      description: sourceLesson.description,
+      price: sourceLesson.price,
+      repeatSourceId: sourceLesson.id,
+    });
+    nextId += 1;
+    date.setDate(date.getDate() + 7);
+  }
+
+  return lessons;
+}
+
 export default function Home() {
   const [studioName, setStudioName] = useState("XXX Music Studio");
   const [invoiceNumber, setInvoiceNumber] = useState("INV-001");
@@ -81,8 +156,8 @@ export default function Home() {
     });
 
   function updateLesson(id: number, field: keyof Lesson, value: string) {
-    setLessons((currentLessons) =>
-      currentLessons.map((lesson) => {
+    setLessons((currentLessons) => {
+      const updatedLessons = currentLessons.map((lesson) => {
         if (lesson.id !== id) {
           return lesson;
         }
@@ -91,8 +166,29 @@ export default function Home() {
           ...lesson,
           [field]: value,
         };
-      }),
-    );
+      });
+
+      const sourceLesson = updatedLessons.find((lesson) => lesson.id === id);
+
+      if (
+        !sourceLesson ||
+        sourceLesson.repeatSourceId ||
+        !["date", "description", "price"].includes(field)
+      ) {
+        return updatedLessons;
+      }
+
+      const lessonsWithoutGenerated = updatedLessons.filter(
+        (lesson) => lesson.repeatSourceId !== id,
+      );
+      const generatedLessons = buildRemainingMonthLessons(
+        sourceLesson,
+        lessonsWithoutGenerated,
+        getNextLessonId(lessonsWithoutGenerated),
+      );
+
+      return [...lessonsWithoutGenerated, ...generatedLessons];
+    });
   }
 
   function addLesson() {
@@ -109,7 +205,9 @@ export default function Home() {
 
   function removeLesson(id: number) {
     setLessons((currentLessons) =>
-      currentLessons.filter((lesson) => lesson.id !== id),
+      currentLessons.filter(
+        (lesson) => lesson.id !== id && lesson.repeatSourceId !== id,
+      ),
     );
   }
 
