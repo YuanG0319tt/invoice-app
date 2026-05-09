@@ -25,14 +25,10 @@ const lessonOptions = [
 
 const paymentOptions: PaymentMethod[] = ["Zelle", "Venmo", "Cash", "Check"];
 
-const initialLessons: Lesson[] = [
-  { id: 1, date: "2026-04-05", description: lessonOptions[0], price: "50" },
-  { id: 2, date: "2026-04-12", description: lessonOptions[0], price: "50" },
-  { id: 3, date: "2026-04-19", description: lessonOptions[0], price: "50" },
-];
+const initialLessons: Lesson[] = [];
 
 const initialPayments: Record<PaymentMethod, PaymentOption> = {
-  Zelle: { enabled: true, details: "123-456-7890" },
+  Zelle: { enabled: false, details: "" },
   Venmo: { enabled: false, details: "" },
   Cash: { enabled: false, details: "" },
   Check: { enabled: false, details: "" },
@@ -131,11 +127,11 @@ function buildRemainingMonthLessons(
 }
 
 export default function Home() {
-  const [studioName, setStudioName] = useState("XXX Music Studio");
-  const [invoiceNumber, setInvoiceNumber] = useState("INV-001");
-  const [invoiceDate, setInvoiceDate] = useState("2026-05-01");
-  const [dueDate, setDueDate] = useState("2026-05-05");
-  const [billTo, setBillTo] = useState("John Smith");
+  const [studioName, setStudioName] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [billTo, setBillTo] = useState("");
   const [payments, setPayments] = useState(initialPayments);
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
 
