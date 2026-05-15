@@ -600,10 +600,22 @@ export default function CalendarPage() {
     setCalendarError("");
   }
 
+  function getSessionById(sessionId: number | null) {
+    if (!sessionId) {
+      return null;
+    }
+
+    return sessions.find((session) => session.id === sessionId) ?? null;
+  }
+
   function getDraggedSession(event: DragEvent<HTMLElement>) {
     const sessionId = Number(event.dataTransfer.getData("text/plain"));
 
-    return sessions.find((session) => session.id === sessionId) ?? null;
+    return getSessionById(Number.isFinite(sessionId) ? sessionId : null);
+  }
+
+  function getPreviewSession() {
+    return getSessionById(draggingSessionId);
   }
 
   function getDropStartTime(event: DragEvent<HTMLElement>, targetHour: number) {
@@ -647,7 +659,7 @@ export default function CalendarPage() {
   ) {
     event.preventDefault();
 
-    const session = getDraggedSession(event);
+    const session = getPreviewSession();
 
     if (!session) {
       return;
@@ -678,7 +690,7 @@ export default function CalendarPage() {
     event.preventDefault();
     event.stopPropagation();
 
-    const session = getDraggedSession(event);
+    const session = getPreviewSession();
     const nextStartTime = getColumnDropStartTime(event);
 
     if (!session || !nextStartTime) {
