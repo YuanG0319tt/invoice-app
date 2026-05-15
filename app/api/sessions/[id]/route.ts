@@ -11,11 +11,49 @@ const sessionSchema = z.object({
   notes: z.string().trim().nullable().optional(),
 });
 
+function getDateRange(dateInput: string) {
+  const start = new Date(dateInput);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 1);
+
+  return { start, end };
+}
+
+async function hasTimeConflict(
+  sessionId: number,
+  classDate: string,
+  startTime: string,
+  endTime: string,
+) {
+  const { start, end } = getDateRange(classDate);
+
+  const conflict = await prisma.classSession.findFirst({
+    where: {
+      id: {
+        not: sessionId,
+      },
+      classDate: {
+        gte: start,
+        lt: end,
+      },
+      startTime: {
+        lt: endTime,
+      },
+      endTime: {
+        gt: startTime,
+      },
+    },
+  });
+
+  return conflict !== null;
+}
+
 export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const params = await context.params;
+  const sessionId = Number(params.id);
   const body = await req.json();
   const result = sessionSchema.safeParse(body);
 
@@ -33,8 +71,22 @@ export async function PUT(
     );
   }
 
+  const hasConflict = await hasTimeConflict(
+    sessionId,
+    result.data.classDate,
+    result.data.startTime,
+    result.data.endTime,
+  );
+
+  if (hasConflict) {
+    return NextResponse.json(
+      { error: "Another lesson already uses this time range." },
+      { status: 409 },
+    );
+  }
+
   const session = await prisma.classSession.update({
-    where: { id: Number(params.id) },
+    where: { id: sessionId },
     data: {
       studentId: result.data.studentId,
       title: result.data.title,
