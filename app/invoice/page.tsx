@@ -18,6 +18,8 @@ type PaymentOption = {
   details: string;
 };
 
+type InvoiceStyle = "classic" | "modern" | "elegant";
+
 const lessonOptions = [
   "Piano Lesson (60 min)",
   "Piano Lesson (45 min)",
@@ -25,6 +27,27 @@ const lessonOptions = [
 ] as const;
 
 const paymentOptions: PaymentMethod[] = ["Zelle", "Venmo", "Cash", "Check"];
+const invoiceStyles: Array<{
+  id: InvoiceStyle;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "classic",
+    label: "Classic",
+    description: "Clean black and white studio invoice.",
+  },
+  {
+    id: "modern",
+    label: "Modern",
+    description: "Structured layout with a strong header.",
+  },
+  {
+    id: "elegant",
+    label: "Elegant",
+    description: "Soft color, refined spacing, polished sections.",
+  },
+];
 
 const initialLessons: Lesson[] = [];
 
@@ -128,6 +151,7 @@ function buildRemainingMonthLessons(
 }
 
 export default function InvoicePage() {
+  const [invoiceStyle, setInvoiceStyle] = useState<InvoiceStyle>("modern");
   const [studioName, setStudioName] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
@@ -151,6 +175,22 @@ export default function InvoicePage() {
       const details = payments[option].details.trim();
       return details ? `${option}: ${details}` : option;
     });
+
+  const previewClassName = [
+    "mx-auto min-h-[11in] w-full max-w-[8.5in] bg-white text-[15px] print:min-h-0 print:max-w-none",
+    invoiceStyle === "classic"
+      ? "p-8 leading-7 text-[#1d1f1b] sm:p-12 print:p-0"
+      : "",
+    invoiceStyle === "modern"
+      ? "overflow-hidden rounded-sm p-0 leading-6 text-[#1b1f22] print:rounded-none"
+      : "",
+    invoiceStyle === "elegant"
+      ? "p-8 leading-7 text-[#253028] sm:p-12 print:p-0"
+      : "",
+  ].join(" ");
+
+  const previewBodyClassName =
+    invoiceStyle === "modern" ? "p-8 sm:p-12 print:p-0" : "";
 
   function updateLesson(id: number, field: keyof Lesson, value: string) {
     setLessons((currentLessons) => {
@@ -240,6 +280,36 @@ export default function InvoicePage() {
           </div>
 
           <div className="grid gap-4">
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-medium">PDF style</legend>
+              <div className="grid gap-2">
+                {invoiceStyles.map((style) => (
+                  <label
+                    key={style.id}
+                    className={[
+                      "cursor-pointer rounded-md border p-3 text-sm transition",
+                      invoiceStyle === style.id
+                        ? "border-[#394832] bg-[#f2f4ee]"
+                        : "border-[#d8dbd2] hover:bg-[#fafbf7]",
+                    ].join(" ")}
+                  >
+                    <input
+                      type="radio"
+                      name="invoiceStyle"
+                      value={style.id}
+                      checked={invoiceStyle === style.id}
+                      onChange={() => setInvoiceStyle(style.id)}
+                      className="sr-only"
+                    />
+                    <span className="font-semibold">{style.label}</span>
+                    <span className="mt-1 block text-xs leading-5 text-[#65705c]">
+                      {style.description}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
             <label className="grid gap-1.5 text-sm font-medium">
               Studio name
               <input
@@ -410,84 +480,220 @@ export default function InvoicePage() {
         </section>
 
         <section className="rounded-lg border border-[#d8dbd2] bg-white p-4 shadow-sm print:border-0 print:p-0 print:shadow-none">
-          <article className="mx-auto min-h-[11in] w-full max-w-[8.5in] bg-white p-8 text-[15px] leading-7 text-[#1d1f1b] sm:p-12 print:min-h-0 print:max-w-none print:p-0">
-            <header className="mb-9 flex flex-col gap-7 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-3xl font-semibold tracking-normal">
-                  {studioName}
-                </h2>
-              </div>
-
-              <div className="min-w-48 text-left sm:text-right">
-                <p>
-                  <span className="font-semibold">Invoice #:</span>{" "}
-                  {invoiceNumber}
-                </p>
-                <p>
-                  <span className="font-semibold">Date:</span>{" "}
-                  {formatDate(invoiceDate, {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-                <p>
-                  <span className="font-semibold">Due:</span>{" "}
-                  {formatDate(dueDate, {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-            </header>
-
-            <section className="mb-8">
-              <p className="font-semibold">Bill To:</p>
-              <p>{billTo}</p>
-            </section>
-
-            <section className="border-y border-[#1d1f1b] py-3">
-              <div className="grid gap-2">
-                {lessons.map((lesson) => (
-                  <div
-                    key={lesson.id}
-                    className="grid grid-cols-[72px_1fr_auto] gap-3"
-                  >
+          <article className={`invoice-print-page ${previewClassName}`}>
+            {invoiceStyle === "modern" ? (
+              <header className="bg-[#1f3429] px-8 py-9 text-white sm:px-12 print:px-0 print:pt-0">
+                <div className="flex flex-col gap-7 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#cbd8c0]">
+                      Invoice
+                    </p>
+                    <h2 className="mt-3 text-4xl font-semibold tracking-normal">
+                      {studioName || "Studio name"}
+                    </h2>
+                  </div>
+                  <div className="grid gap-1 text-sm sm:min-w-48 sm:text-right">
+                    <p>#{invoiceNumber}</p>
                     <p>
-                      {formatDate(lesson.date, {
-                        month: "short",
+                      {formatDate(invoiceDate, {
+                        month: "long",
                         day: "numeric",
+                        year: "numeric",
                       })}
                     </p>
-                    <p>{lesson.description}</p>
-                    <p className="text-right">
-                      {currencyFormatter.format(parsePrice(lesson.price))}
+                    <p>
+                      Due{" "}
+                      {formatDate(dueDate, {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </p>
                   </div>
-                ))}
-              </div>
-            </section>
+                </div>
+              </header>
+            ) : null}
 
-            <section className="mt-5 flex justify-end">
-              <p className="text-xl font-semibold">
-                Total: {currencyFormatter.format(total)}
-              </p>
-            </section>
+            <div className={previewBodyClassName}>
+              {invoiceStyle !== "modern" ? (
+                <header
+                  className={[
+                    "mb-9 flex flex-col gap-7 sm:flex-row sm:items-start sm:justify-between",
+                    invoiceStyle === "elegant"
+                      ? "border-b border-[#d7cfc1] pb-7"
+                      : "",
+                  ].join(" ")}
+                >
+                  <div>
+                    <p
+                      className={[
+                        "text-xs font-semibold uppercase tracking-[0.22em]",
+                        invoiceStyle === "elegant"
+                          ? "text-[#8a6f47]"
+                          : "text-[#65705c]",
+                      ].join(" ")}
+                    >
+                      Invoice
+                    </p>
+                    <h2
+                      className={[
+                        "mt-2 font-semibold tracking-normal",
+                        invoiceStyle === "elegant"
+                          ? "text-4xl text-[#253028]"
+                          : "text-3xl",
+                      ].join(" ")}
+                    >
+                      {studioName || "Studio name"}
+                    </h2>
+                  </div>
 
-            <section className="mt-10">
-              <p className="font-semibold">Payment:</p>
-              {selectedPayments.length > 0 ? (
-                <div>
-                  {selectedPayments.map((payment) => (
-                    <p key={payment}>{payment}</p>
+                  <div className="min-w-48 text-left sm:text-right">
+                    <p>
+                      <span className="font-semibold">Invoice #:</span>{" "}
+                      {invoiceNumber}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Date:</span>{" "}
+                      {formatDate(invoiceDate, {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Due:</span>{" "}
+                      {formatDate(dueDate, {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </header>
+              ) : null}
+
+              <section
+                className={[
+                  "mb-8",
+                  invoiceStyle === "modern"
+                    ? "rounded-md bg-[#f4f7f2] p-4"
+                    : "",
+                  invoiceStyle === "elegant"
+                    ? "rounded-md border border-[#ded4c4] bg-[#fbfaf7] p-4"
+                    : "",
+                ].join(" ")}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#65705c]">
+                  Bill To
+                </p>
+                <p className="mt-1 text-lg font-semibold">{billTo}</p>
+              </section>
+
+              <section
+                className={[
+                  invoiceStyle === "classic"
+                    ? "border-y border-[#1d1f1b] py-3"
+                    : "",
+                  invoiceStyle === "modern"
+                    ? "overflow-hidden rounded-md border border-[#dbe3d5]"
+                    : "",
+                  invoiceStyle === "elegant"
+                    ? "overflow-hidden rounded-md border border-[#ded4c4]"
+                    : "",
+                ].join(" ")}
+              >
+                {invoiceStyle !== "classic" ? (
+                  <div
+                    className={[
+                      "grid grid-cols-[92px_1fr_auto] gap-3 px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em]",
+                      invoiceStyle === "modern"
+                        ? "bg-[#eef4e8] text-[#3f4c39]"
+                        : "bg-[#f2ede4] text-[#745b37]",
+                    ].join(" ")}
+                  >
+                    <p>Date</p>
+                    <p>Lesson</p>
+                    <p className="text-right">Amount</p>
+                  </div>
+                ) : null}
+
+                <div
+                  className={[
+                    "grid",
+                    invoiceStyle === "classic" ? "gap-2" : "divide-y divide-[#e5e7df]",
+                  ].join(" ")}
+                >
+                  {lessons.map((lesson) => (
+                    <div
+                      key={lesson.id}
+                      className={[
+                        "grid grid-cols-[92px_1fr_auto] gap-3",
+                        invoiceStyle === "classic" ? "" : "px-4 py-3",
+                      ].join(" ")}
+                    >
+                      <p>
+                        {formatDate(lesson.date, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p>{lesson.description}</p>
+                      <p className="text-right font-medium">
+                        {currencyFormatter.format(parsePrice(lesson.price))}
+                      </p>
+                    </div>
                   ))}
                 </div>
-              ) : (
-                <p>No payment option selected</p>
-              )}
-            </section>
+              </section>
 
+              <section
+                className={[
+                  "mt-6 flex justify-end",
+                  invoiceStyle === "modern" || invoiceStyle === "elegant"
+                    ? "border-t border-[#e2e5dc] pt-5"
+                    : "",
+                ].join(" ")}
+              >
+                <div
+                  className={[
+                    "min-w-56 text-right",
+                    invoiceStyle === "modern"
+                      ? "rounded-md bg-[#1f3429] px-5 py-4 text-white"
+                      : "",
+                    invoiceStyle === "elegant"
+                      ? "rounded-md bg-[#f2ede4] px-5 py-4 text-[#253028]"
+                      : "",
+                  ].join(" ")}
+                >
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em]">
+                    Total
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold">
+                    {currencyFormatter.format(total)}
+                  </p>
+                </div>
+              </section>
+
+              <section
+                className={[
+                  "mt-10",
+                  invoiceStyle === "elegant"
+                    ? "rounded-md border border-[#ded4c4] p-4"
+                    : "",
+                ].join(" ")}
+              >
+                <p className="font-semibold">Payment:</p>
+                {selectedPayments.length > 0 ? (
+                  <div className="mt-1">
+                    {selectedPayments.map((payment) => (
+                      <p key={payment}>{payment}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1">No payment option selected</p>
+                )}
+              </section>
+            </div>
           </article>
         </section>
       </div>

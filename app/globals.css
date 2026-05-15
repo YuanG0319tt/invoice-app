@@ -27,11 +27,37 @@ body {
 
 @page {
   size: letter;
-  margin: 0.65in;
+  margin: 0;
 }
 
 @media print {
   * {
     print-color-adjust: exact;
+  }
+
+  html,
+  body {
+    width: 8.5in;
+    min-height: 11in;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .invoice-print-page {
+    box-sizing: border-box;
+    width: 8.5in !important;
+    height: 11in !important;
+    min-height: 11in !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    padding: 0.45in !important;
+    page-break-after: avoid;
+    page-break-before: avoid;
+    page-break-inside: avoid;
+  }
+
+  .invoice-print-page * {
+    page-break-inside: avoid;
   }
 }
